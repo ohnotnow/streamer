@@ -1,0 +1,37 @@
+name: Streamer
+options:
+  bundleIdPrefix: uk.ohnotnow
+  deploymentTarget:
+    macOS: "27.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MACOSX_DEPLOYMENT_TARGET: "27.0"
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: Manual
+targets:
+  Streamer:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/Streamer
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: uk.ohnotnow.streamer
+        ENABLE_HARDENED_RUNTIME: YES
+        GENERATE_INFOPLIST_FILE: YES
+    info:
+      path: Sources/Streamer/Info.plist
+      properties:
+        LSUIElement: true
+        CFBundleDisplayName: Streamer
+        NSHumanReadableCopyright: ""
+  StreamerTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests/StreamerTests
+    dependencies:
+      - target: Streamer
