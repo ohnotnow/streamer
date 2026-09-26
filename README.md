@@ -30,12 +30,12 @@ The menubar icon shows a hollow mast when Streamer is off, a mast with one pair 
 ```sh
 git clone https://github.com/ohnotnow/streamer.git
 cd streamer
-make run
+make install
 ```
 
-`make run` builds a release copy into `build/` and opens it. Look for the mast icon in your menubar.
+`make install` builds Streamer, copies it to `/Applications` and opens it. Look for the mast icon in your menubar. After that you can delete the cloned folder if you like.
 
-Builds are ad-hoc signed by default. If you want every build signed by the same certificate, create an untracked `local.mk` with `SIGN` (the hash from `security find-identity -v -p codesigning`) and `TEAM`. The `Makefile` has the details.
+If you are working on Streamer, `make run` builds and opens a copy from `build/` instead. Builds are ad-hoc signed, so macOS treats every rebuild as a new app and asks for Music access again. To stop that, create an untracked `local.mk` with `SIGN` (the hash from `security find-identity -v -p codesigning`) and `TEAM`, so every build is signed by the same certificate. The `Makefile` has the details.
 
 ## macOS privacy prompts
 

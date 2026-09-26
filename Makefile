@@ -12,7 +12,7 @@ ifdef TEAM
 SIGNING += DEVELOPMENT_TEAM=$(TEAM)
 endif
 
-.PHONY: build generate run test clean
+.PHONY: build generate run install test clean
 
 build: Streamer.xcodeproj
 	xcodebuild -project Streamer.xcodeproj -scheme Streamer -configuration Release -derivedDataPath build build $(SIGNING)
@@ -24,6 +24,14 @@ generate Streamer.xcodeproj: project.yml $(SOURCES)
 
 run: build
 	open $(APP)
+
+# A copy in /Applications that keeps its Music permission: macOS ties the permission to this exact
+# build, so it only asks again after the next install.
+install: build
+	-pkill -x Streamer
+	rm -rf /Applications/Streamer.app
+	ditto $(APP) /Applications/Streamer.app
+	open /Applications/Streamer.app
 
 test: Streamer.xcodeproj
 	xcodebuild -project Streamer.xcodeproj -scheme Streamer -derivedDataPath build test CODE_SIGNING_ALLOWED=NO
