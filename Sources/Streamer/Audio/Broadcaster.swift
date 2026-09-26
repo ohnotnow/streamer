@@ -29,7 +29,11 @@ final class Broadcaster {
     static let slowListenerFrames = Int(10 * framesPerSecond)
 
     private(set) var nowPlaying: Track?
-    private(set) var listenerCount = 0
+    private(set) var listenerCount = 0 {
+        didSet { if listenerCount != oldValue { onListenerCountChange?(listenerCount) } }
+    }
+    /// Told whenever the number of listeners changes, e.g. to keep the Mac awake.
+    @ObservationIgnored var onListenerCountChange: ((Int) -> Void)?
     /// Set when the source has nothing that will play; the broadcaster has stopped.
     private(set) var failure: String?
 

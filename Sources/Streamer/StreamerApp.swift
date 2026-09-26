@@ -45,6 +45,8 @@ struct StreamerApp: App {
             Button("Copy stream URL") { model.copyStreamURL() }
             Toggle("Share on the network", isOn: $model.sharesOnNetwork)
                 .help("Anyone who can reach this Mac on the network, or your tailnet, can listen. There is no password. Takes effect on the next Start.")
+            Toggle("Keep Mac awake while listening", isOn: $model.keepsAwake)
+                .help("While someone is listening, this Mac will not go to sleep when idle, like caffeinate -i. The display can still sleep.")
             Divider()
             Button("Quit Streamer") {
                 NSApplication.shared.terminate(nil)

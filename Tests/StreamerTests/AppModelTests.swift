@@ -48,6 +48,32 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(model.icon, .off)
     }
 
+    /// Awake only while someone is listening and the switch is on.
+    func testKeepsAwakeOnlyWhileListening() async throws {
+        let folder = try TestAudio.makeFolder()
+        addTeardownBlock { try? FileManager.default.removeItem(at: folder) }
+        try TestAudio.writeTone(to: folder.appendingPathComponent("tone.aiff"), seconds: 1)
+        let model = AppModel(defaults: makeDefaults(), port: 0)
+        XCTAssertTrue(model.keepsAwake)  // on by default
+        model.addFolder(folder)
+        await model.start()
+        defer { model.stop() }
+        XCTAssertFalse(model.isKeepingAwake)  // serving, but nobody listening
+
+        let listener = SilentListener()
+        model.broadcaster?.add(listener)
+        XCTAssertTrue(model.isKeepingAwake)
+        model.keepsAwake = false
+        XCTAssertFalse(model.isKeepingAwake)
+        model.keepsAwake = true
+        XCTAssertTrue(model.isKeepingAwake)
+        model.broadcaster?.remove(listener)
+        XCTAssertFalse(model.isKeepingAwake)
+        model.broadcaster?.add(listener)
+        model.stop()
+        XCTAssertFalse(model.isKeepingAwake)
+    }
+
     private final class SilentListener: Listener {
         func send(_ frame: Data) {}
         var pendingFrames: Int { 0 }

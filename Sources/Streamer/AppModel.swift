@@ -26,10 +26,18 @@ final class AppModel {
     var sharesOnNetwork: Bool {
         didSet { defaults.set(sharesOnNetwork, forKey: "sharesOnNetwork") }
     }
+    /// Hold off idle sleep while at least one listener is connected. On unless switched off.
+    var keepsAwake: Bool {
+        didSet {
+            defaults.set(keepsAwake, forKey: "keepsAwake")
+            updateKeepAwake()
+        }
+    }
 
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let port: UInt16
     @ObservationIgnored private var server: StreamServer?
+    @ObservationIgnored private let keepAwake = KeepAwake()
 
     /// `port` 0 lets tests take any free port, so they pass while the real app is running.
     init(defaults: UserDefaults = .standard, port: UInt16 = StreamServer.defaultPort) {
@@ -37,6 +45,7 @@ final class AppModel {
         self.port = port
         selectedID = defaults.string(forKey: "selectedSource")
         sharesOnNetwork = defaults.bool(forKey: "sharesOnNetwork")
+        keepsAwake = defaults.object(forKey: "keepsAwake") as? Bool ?? true
         folders = (defaults.stringArray(forKey: "folders") ?? []).map(Self.folderOption)
     }
 
@@ -92,6 +101,7 @@ final class AppModel {
             return
         }
         serverError = nil
+        broadcaster.onListenerCountChange = { [weak self] _ in self?.updateKeepAwake() }
         self.server = server
         self.broadcaster = broadcaster
         Log.log("started \(selected.name)")
@@ -101,6 +111,13 @@ final class AppModel {
         server?.stop()
         server = nil
         broadcaster = nil
+        updateKeepAwake()
+    }
+
+    var isKeepingAwake: Bool { keepAwake.isHolding }
+
+    private func updateKeepAwake() {
+        keepAwake.hold(keepsAwake && (broadcaster?.listenerCount ?? 0) > 0)
     }
 
     /// Loopback when sharing is off; the Mac's local network name when it is on.
