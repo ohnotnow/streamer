@@ -2,11 +2,13 @@ import SwiftUI
 
 @main
 struct StreamerApp: App {
-    @State private var model = AppModel()
-
-    init() {
+    // Loaded here, not in init: reading a @State property in init can hand back a temporary copy,
+    // and the playlists went into that copy instead of the model the menu shows (2026-09-26).
+    @State private var model: AppModel = {
+        let model = AppModel()
         if !AppRuntime.isRunningUnitTests { model.loadPlaylists() }
-    }
+        return model
+    }()
 
     var body: some Scene {
         MenuBarExtra(isInserted: .constant(!AppRuntime.isRunningUnitTests)) {
