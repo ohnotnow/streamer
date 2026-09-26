@@ -1,5 +1,7 @@
 # Streamer
 
+<img src="docs/icon.png" width="256" alt="Streamer's icon: a music folder with a broadcast signal above it">
+
 Streamer plays your own music as a radio station. It is a small macOS menubar app that takes a Music playlist, or a folder of audio files, and serves it as a continuous AAC stream at `http://127.0.0.1:8090/stream`.
 
 Anything that can play internet radio can tune in: [blether](https://github.com/ohnotnow/blether)'s background stream, VLC, or Safari on your phone.
