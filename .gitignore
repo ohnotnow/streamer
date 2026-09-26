@@ -2,3 +2,12 @@
 /.ant
 /STREAMER_SPEC.md
 /*.mp3
+build/
+/Streamer.xcodeproj
+/local.mk
+.DS_Store
+/spike/spike
+/spike/probe
+/spike/*.log
+/spike/*.aac
+/spike/headers.txt

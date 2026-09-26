@@ -22,6 +22,8 @@
 	<string>1</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Streamer reads your Music playlists so it can play one as a stream. It never changes your library.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string></string>
 </dict>
