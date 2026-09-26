@@ -2,66 +2,74 @@ import SwiftUI
 
 @main
 struct StreamerApp: App {
-    @State private var broadcaster: Broadcaster?
-    private let server: StreamServer?
+    @State private var model = AppModel()
 
     init() {
-        // Temporary until the source picker (streamer-UkLWZ.9): `open Streamer.app --args -folder /path`
-        // or `--args -playlist "Name"` serves that folder or Music playlist at launch.
-        guard !AppRuntime.isRunningUnitTests, let source = Self.launchSource() else {
-            server = nil
-            return
-        }
-        let broadcaster = Broadcaster(source: source)
-        let server = StreamServer(broadcaster: broadcaster)
-        Task {
-            do { try await server.start() } catch { Log.log("could not serve: \(error)") }
-        }
-        self.server = server
-        _broadcaster = State(initialValue: broadcaster)
+        if !AppRuntime.isRunningUnitTests { model.loadPlaylists() }
     }
 
     var body: some Scene {
         MenuBarExtra(isInserted: .constant(!AppRuntime.isRunningUnitTests)) {
-            if let broadcaster {
-                Text("Now playing: \(broadcaster.nowPlaying.map { [$0.artist, $0.title].compactMap { $0 }.joined(separator: ", ") } ?? "nothing")")
+            Picker("Source", selection: $model.selectedID) {
+                if model.selected == nil { Text("Choose a playlist or folder").tag(String?.none) }
+                if !model.playlists.isEmpty {
+                    Section("Music playlists") {
+                        ForEach(model.playlists) { Text($0.name).tag(String?.some($0.id)) }
+                    }
+                }
+                if !model.folders.isEmpty {
+                    Section("Folders") {
+                        ForEach(model.folders) { Text($0.name).tag(String?.some($0.id)) }
+                    }
+                }
+            }
+            .pickerStyle(.menu)
+            .disabled(model.isRunning)
+            Button("Add folder...") { addFolder() }
+                .disabled(model.isRunning)
+            Divider()
+            if model.isRunning {
+                Button("Stop") { model.stop() }
+            } else {
+                Button("Start") { Task { await model.start() } }
+                    .disabled(model.selected == nil)
+            }
+            if let broadcaster = model.broadcaster {
+                Text("Now playing: \(broadcaster.nowPlaying.map { [$0.artist, $0.title].compactMap { $0 }.joined(separator: ", ") } ?? "starts when someone listens")")
                 Text("Listeners: \(broadcaster.listenerCount)")
                 Button("Skip track") { broadcaster.skip() }
-                Divider()
             }
+            Divider()
+            Button("Copy stream URL") { model.copyStreamURL() }
+            Toggle("Share on the network", isOn: $model.sharesOnNetwork)
+                .help("Anyone who can reach this Mac on the network, or your tailnet, can listen. There is no password. Takes effect on the next Start.")
+            Divider()
             Button("Quit Streamer") {
                 NSApplication.shared.terminate(nil)
             }
             .keyboardShortcut("q")
-            // Status lines will go here, below Quit, so a line appearing cannot shift the items above it.
-        } label: {
-            Image(nsImage: MenuBarIcon.image(icon))
-        }
-    }
-
-    private static func launchSource() -> (any Source)? {
-        let defaults = UserDefaults.standard
-        if let folder = defaults.string(forKey: "folder") {
-            return FolderSource(url: URL(fileURLWithPath: folder))
-        }
-        guard let name = defaults.string(forKey: "playlist") else { return nil }
-        do {
-            let playlists = try MusicLibrarySource.all()
-            Log.log("Music library: \(playlists.count) playlists")
-            guard let playlist = playlists.first(where: { $0.name == name }) else {
-                Log.log("no playlist called \(name)")
-                return nil
+            // Status lines live below Quit, so a line appearing cannot shift the items above it.
+            let status = model.statusLines
+            if !status.isEmpty {
+                Divider()
+                ForEach(status, id: \.self) { line in
+                    Button(line) {}.disabled(true)
+                }
             }
-            Log.log("playing \(name): \(playlist.trackURLs().count) tracks, \(playlist.skippedCount) skipped")
-            return playlist
-        } catch {
-            Log.log("could not read the Music library: \(error)")
-            return nil
+        } label: {
+            Image(nsImage: MenuBarIcon.image(model.icon))
         }
     }
 
-    private var icon: MenuBarIcon.State {
-        guard let broadcaster else { return .off }
-        return broadcaster.listenerCount > 0 ? .onAir : .ready
+    private func addFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.prompt = "Add folder"
+        // Without activating first, the panel opens behind everything under LSUIElement.
+        NSApp.activate(ignoringOtherApps: true)
+        if panel.runModal() == .OK, let url = panel.url {
+            model.addFolder(url)
+        }
     }
 }
