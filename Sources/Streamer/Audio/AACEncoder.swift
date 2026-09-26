@@ -26,6 +26,11 @@ final class AACEncoder {
         queue.append(buffer)
     }
 
+    /// Drops PCM not yet handed to the converter, for skipping a track.
+    func discardQueued() {
+        queue.removeAll()
+    }
+
     /// Frames of queued PCM not yet handed to the converter.
     var queuedFrames: AVAudioFrameCount {
         queue.reduce(0) { $0 + $1.frameLength }

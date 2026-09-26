@@ -44,6 +44,21 @@ final class BroadcasterTests: XCTestCase {
         XCTAssertEqual(Double(second.frames.count), 2 * perSecond, accuracy: 1)  // a fresh lead, not a minute's backlog
     }
 
+    /// Skipping moves to the next track without disturbing the pace.
+    func testSkipMovesToTheNextTrack() async throws {
+        let (broadcaster, clock) = try makeBroadcaster(tracks: [("1 One", 10), ("2 Two", 10)])
+        let listener = FakeListener()
+        broadcaster.add(listener)
+        await broadcaster.tick()
+        XCTAssertEqual(broadcaster.nowPlaying?.title, "1 One")
+
+        broadcaster.skip()
+        clock.time += 1
+        await broadcaster.tick()
+        XCTAssertEqual(broadcaster.nowPlaying?.title, "2 Two")
+        XCTAssertEqual(Double(listener.frames.count), 3 * perSecond, accuracy: 1)
+    }
+
     func testEveryListenerHearsTheSameFrames() async throws {
         let (broadcaster, clock) = try makeBroadcaster(tracks: [("1 One", 3)])
         let a = FakeListener(), b = FakeListener()

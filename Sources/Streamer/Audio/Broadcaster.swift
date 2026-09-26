@@ -67,6 +67,13 @@ final class Broadcaster {
         if listeners.isEmpty { pause() }
     }
 
+    /// Moves on to the next track. Listeners hear the change once the frames already sent have played.
+    func skip() {
+        decoder = nil
+        encoder.discardQueued()
+        pending.removeAll()
+    }
+
     /// Hang up on everyone and stop for good.
     func stop() {
         for listener in listeners.values { listener.close() }
