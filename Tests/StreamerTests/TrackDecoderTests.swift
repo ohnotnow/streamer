@@ -6,8 +6,7 @@ final class TrackDecoderTests: XCTestCase {
     var directory: URL!
 
     override func setUpWithError() throws {
-        directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        directory = try TestAudio.makeFolder()
     }
 
     override func tearDownWithError() throws {
@@ -16,8 +15,8 @@ final class TrackDecoderTests: XCTestCase {
 
     /// A 48 kHz mono file comes out as 44.1 kHz stereo, about one second of it.
     func testConvertsToTheFixedFormat() async throws {
-        let url = directory.appendingPathComponent("sine.caf")
-        try writeSine(to: url, seconds: 1, sampleRate: 48000, channels: 1)
+        let url = directory.appendingPathComponent("sine.aiff")
+        try TestAudio.writeTone(to: url, seconds: 1, sampleRate: 48000)
 
         let decoder = try await TrackDecoder(url: url)
         var total: AVAudioFrameCount = 0
@@ -43,19 +42,5 @@ final class TrackDecoderTests: XCTestCase {
             _ = try await body()
             XCTFail("expected an error", line: line)
         } catch {}
-    }
-
-    private func writeSine(to url: URL, seconds: Double, sampleRate: Double, channels: AVAudioChannelCount) throws {
-        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: channels)!
-        let frames = AVAudioFrameCount(seconds * sampleRate)
-        let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames)!
-        buffer.frameLength = frames
-        for channel in 0..<Int(channels) {
-            for i in 0..<Int(frames) {
-                buffer.floatChannelData![channel][i] = Float(sin(2 * .pi * 440 * Double(i) / sampleRate) * 0.5)
-            }
-        }
-        let file = try AVAudioFile(forWriting: url, settings: format.settings)
-        try file.write(from: buffer)
     }
 }

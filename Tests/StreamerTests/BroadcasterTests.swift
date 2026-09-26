@@ -1,4 +1,3 @@
-import AVFoundation
 import XCTest
 @testable import Streamer
 
@@ -123,27 +122,13 @@ final class BroadcasterTests: XCTestCase {
 
     /// A folder of tones, one per (title, seconds); a nil length writes a file that will not decode.
     private func makeBroadcaster(tracks: [(String, Double?)]) throws -> (Broadcaster, Clock) {
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let folder = try TestAudio.makeFolder()
         addTeardownBlock { try? FileManager.default.removeItem(at: folder) }
         for (title, seconds) in tracks {
             let url = folder.appendingPathComponent(title).appendingPathExtension("aiff")
-            if let seconds { try writeTone(to: url, seconds: seconds) } else { try Data("not audio".utf8).write(to: url) }
+            if let seconds { try TestAudio.writeTone(to: url, seconds: seconds) } else { try Data("not audio".utf8).write(to: url) }
         }
         let clock = Clock()
         return (Broadcaster(source: FolderSource(url: folder), now: { clock.time }, ticksAutomatically: false), clock)
-    }
-
-    private func writeTone(to url: URL, seconds: Double) throws {
-        let format = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)!
-        let frames = AVAudioFrameCount(seconds * 44100)
-        let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames)!
-        buffer.frameLength = frames
-        for i in 0..<Int(frames) {
-            buffer.floatChannelData![0][i] = Float(sin(2 * .pi * 440 * Double(i) / 44100) * 0.5)
-        }
-        let settings: [String: Any] = [AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: 44100, AVNumberOfChannelsKey: 1,
-                                       AVLinearPCMBitDepthKey: 16, AVLinearPCMIsFloatKey: false, AVLinearPCMIsBigEndianKey: true]
-        try AVAudioFile(forWriting: url, settings: settings).write(from: buffer)
     }
 }
