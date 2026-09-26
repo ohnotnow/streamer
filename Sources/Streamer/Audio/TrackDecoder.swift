@@ -14,7 +14,7 @@ final class TrackDecoder {
     private let provider: AVAssetReaderOutput.Provider<CMReadySampleBuffer<CMSampleBuffer.DynamicContent>>
 
     /// Throws if the file is missing, unreadable, or has no audio track.
-    init(url: URL) async throws {
+    nonisolated(nonsending) init(url: URL) async throws {
         let asset = AVURLAsset(url: url)
         guard let track = try await asset.loadTracks(withMediaType: .audio).first else {
             throw Failure.noAudioTrack
@@ -35,7 +35,7 @@ final class TrackDecoder {
     }
 
     /// The next chunk of PCM, or nil at the end of the track. Throws if decoding fails part way.
-    func next() async throws -> AVAudioPCMBuffer? {
+    nonisolated(nonsending) func next() async throws -> AVAudioPCMBuffer? {
         guard let sample = try await provider.next() else { return nil }
         let frames = AVAudioFrameCount(sample.sampleCount)
         let buffer = AVAudioPCMBuffer(pcmFormat: Self.pcmFormat, frameCapacity: frames)!
