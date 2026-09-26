@@ -17,6 +17,8 @@ targets:
     platform: macOS
     sources:
       - Sources/Streamer
+    dependencies:
+      - sdk: iTunesLibrary.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: uk.ohnotnow.streamer
@@ -28,6 +30,9 @@ targets:
         LSUIElement: true
         CFBundleDisplayName: Streamer
         NSHumanReadableCopyright: ""
+        # Without it tccd refuses kTCCServiceMediaLibrary silently, with no prompt, and iTunesLibrary
+        # fails with NSCocoaError 4097 on com.apple.amp.library.framework (found 2026-09-26).
+        NSAppleMusicUsageDescription: "Streamer reads your Music playlists so it can play one as a stream. It never changes your library."
   StreamerTests:
     type: bundle.unit-test
     platform: macOS
