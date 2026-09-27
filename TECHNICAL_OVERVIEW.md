@@ -52,7 +52,7 @@ Source.trackURLs() -> TrackDecoder -> AACEncoder -> Broadcaster.tick() -> Audien
 Live sources (push, paced by the sound hardware)
 
 browser process -> ProcessTap -> LiveBroadcaster.play() -> AACEncoder -> Audience -> ConnectionListener -> socket
-                   (48 kHz float resampled to 44.1 kHz s16 on the tap's queue, then handed to the main queue)
+                   (float at the output device's rate, resampled to 44.1 kHz s16 on the tap's queue, then handed to the main queue)
 ```
 
 `TrackDecoder.pcmFormat` (44.1 kHz, stereo, 16-bit interleaved) is the one PCM format the encoder takes, whatever the source.

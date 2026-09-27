@@ -67,12 +67,6 @@ final class ProcessTap: LiveFeed {
         description.isPrivate = true
         try check(AudioHardwareCreateProcessTap(description, &tapID), "Creating the tap")
 
-        var format = try Self.read(tapID, kAudioTapPropertyFormat, AudioStreamBasicDescription())
-        guard let tapFormat = AVAudioFormat(streamDescription: &format),
-              let converter = AVAudioConverter(from: tapFormat, to: TrackDecoder.pcmFormat) else {
-            throw Failure.coreAudio("Reading the tap format", kAudioHardwareUnsupportedOperationError)
-        }
-
         // A tap is read through an aggregate device, clocked by the current output device.
         let outputDevice = try Self.read(AudioObjectID(kAudioObjectSystemObject), kAudioHardwarePropertyDefaultOutputDevice, AudioObjectID(0))
         let outputUID = try Self.readString(outputDevice, kAudioDevicePropertyDeviceUID)
@@ -88,6 +82,15 @@ final class ProcessTap: LiveFeed {
             ],
         ]
         try check(AudioHardwareCreateAggregateDevice(composition as CFDictionary, &aggregateID), "Creating the aggregate device")
+
+        // The aggregate delivers at the output device's rate, whatever the tap's own format says:
+        // with 44.1 kHz Bluetooth headphones, trusting the tap's rate made speech audibly fast (2026-09-27).
+        var format = try Self.read(tapID, kAudioTapPropertyFormat, AudioStreamBasicDescription())
+        format.mSampleRate = try Self.read(aggregateID, kAudioDevicePropertyNominalSampleRate, Float64(0))
+        guard let tapFormat = AVAudioFormat(streamDescription: &format),
+              let converter = AVAudioConverter(from: tapFormat, to: TrackDecoder.pcmFormat) else {
+            throw Failure.coreAudio("Reading the tap format", kAudioHardwareUnsupportedOperationError)
+        }
 
         let block = Self.ioBlock(resampler: Resampler(converter: converter, inputFormat: tapFormat), deliver: deliver)
         try check(AudioDeviceCreateIOProcIDWithBlock(&procID, aggregateID, queue, block), "Creating the IO proc")
@@ -143,7 +146,7 @@ final class ProcessTap: LiveFeed {
     }
 }
 
-/// Converts the tap's buffers (48 kHz float on the Mac tried) to `TrackDecoder.pcmFormat`. Used only
+/// Converts the tap's buffers (float, at the output device's rate) to `TrackDecoder.pcmFormat`. Used only
 /// on the tap's queue. One converter for the whole run, so the resampling carries on smoothly from
 /// one buffer to the next.
 private final class Resampler: @unchecked Sendable {

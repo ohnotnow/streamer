@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-09-27
+
+### Fixed
+- A live source played slightly fast and high, most noticeable on speech, when the Mac's sound output was a device that runs at 44.1 kHz, such as some Bluetooth headphones.
+
 ## [0.8.0] - 2026-09-27
 
 The first tagged release.
@@ -25,5 +30,6 @@ The first tagged release.
 - A listener more than 10 seconds behind is dropped, so one slow connection cannot hold the stream up.
 - `make install` for a copy in `/Applications`, plus `make run`, `make test` and `make icon`.
 
-[Unreleased]: https://github.com/ohnotnow/streamer/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/ohnotnow/streamer/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/ohnotnow/streamer/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/ohnotnow/streamer/releases/tag/v0.8.0
