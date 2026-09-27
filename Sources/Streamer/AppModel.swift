@@ -7,15 +7,42 @@ import SystemConfiguration
 @MainActor @Observable
 final class AppModel {
     struct SourceOption: Identifiable {
-        /// "playlist:<persistent id>" or "folder:<path>", stable across launches.
+        enum Kind {
+            case tracks(any Source)
+            case live(LiveSource)
+        }
+
+        /// "playlist:<persistent id>", "folder:<path>" or "live:<bundle id>", stable across launches.
         let id: String
-        let source: any Source
-        var name: String { source.name }
+        let kind: Kind
+
+        init(id: String, source: any Source) {
+            self.init(id: id, kind: .tracks(source))
+        }
+
+        init(id: String, kind: Kind) {
+            self.id = id
+            self.kind = kind
+        }
+
+        var name: String {
+            switch kind {
+            case .tracks(let source): source.name
+            case .live(let live): live.name
+            }
+        }
+
+        /// Nil for a live source.
+        var source: (any Source)? {
+            if case .tracks(let source) = kind { source } else { nil }
+        }
     }
 
     private(set) var playlists: [SourceOption] = []
     private(set) var folders: [SourceOption] = []
-    private(set) var broadcaster: Broadcaster?
+    /// The browsers installed on this Mac.
+    let liveSources = LiveSource.browsers.filter(\.isInstalled).map { SourceOption(id: "live:\($0.bundleIDs[0])", kind: .live($0)) }
+    private(set) var broadcaster: (any Station)?
     /// Set when the Music library could not be read, or the server could not start.
     private(set) var libraryError: String?
     private(set) var serverError: String?
@@ -52,7 +79,7 @@ final class AppModel {
     var isRunning: Bool { broadcaster != nil }
 
     var selected: SourceOption? {
-        (playlists + folders).first { $0.id == selectedID }
+        (playlists + folders + liveSources).first { $0.id == selectedID }
     }
 
     var icon: MenuBarIcon.State {
@@ -62,7 +89,7 @@ final class AppModel {
 
     /// One line each, shown below Quit.
     var statusLines: [String] {
-        var lines = [libraryError, serverError, broadcaster?.failure].compactMap { $0 }
+        var lines = [libraryError, serverError, broadcaster?.failure, (broadcaster as? LiveBroadcaster)?.warning].compactMap { $0 }
         if isRunning, let music = selected?.source as? MusicLibrarySource, music.skippedCount > 0 {
             lines.append("\(music.skippedCount) tracks skipped: no local file, or protected")
         }
@@ -91,7 +118,10 @@ final class AppModel {
 
     func start() async {
         guard !isRunning, let selected else { return }
-        let broadcaster = Broadcaster(source: selected.source)
+        let broadcaster: any Station = switch selected.kind {
+        case .tracks(let source): Broadcaster(source: source)
+        case .live(let live): LiveBroadcaster(appName: live.appName, feed: ProcessTap(bundleIDs: live.bundleIDs))
+        }
         let server = StreamServer(port: port, allInterfaces: sharesOnNetwork, broadcaster: broadcaster)
         do {
             try await server.start()

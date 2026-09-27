@@ -98,7 +98,7 @@ final class BroadcasterTests: XCTestCase {
         clock.time += 12
         await broadcaster.tick()
         XCTAssertTrue(slow.closed)
-        XCTAssertEqual(slow.frames.count, Broadcaster.slowListenerFrames + 1)
+        XCTAssertEqual(slow.frames.count, Audience.slowListenerFrames + 1)
         XCTAssertFalse(healthy.closed)
         XCTAssertEqual(Double(healthy.frames.count), 14 * perSecond, accuracy: 1)
         XCTAssertEqual(broadcaster.listenerCount, 1)

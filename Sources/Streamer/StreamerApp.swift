@@ -24,6 +24,11 @@ struct StreamerApp: App {
                         ForEach(model.folders) { Text($0.name).tag(String?.some($0.id)) }
                     }
                 }
+                if !model.liveSources.isEmpty {
+                    Section("Live from a browser") {
+                        ForEach(model.liveSources) { Text($0.name).tag(String?.some($0.id)) }
+                    }
+                }
             }
             .pickerStyle(.menu)
             .disabled(model.isRunning)
@@ -36,10 +41,16 @@ struct StreamerApp: App {
                 Button("Start") { Task { await model.start() } }
                     .disabled(model.selected == nil)
             }
-            if let broadcaster = model.broadcaster {
-                Text("Now playing: \(broadcaster.nowPlaying.map { [$0.artist, $0.title].compactMap { $0 }.joined(separator: ", ") } ?? "starts when someone listens")")
-                Text("Listeners: \(broadcaster.listenerCount)")
-                Button("Skip track") { broadcaster.skip() }
+            if let station = model.broadcaster {
+                if let broadcaster = station as? Broadcaster {
+                    Text("Now playing: \(broadcaster.nowPlaying.map { [$0.artist, $0.title].compactMap { $0 }.joined(separator: ", ") } ?? "starts when someone listens")")
+                } else if let live = station as? LiveBroadcaster {
+                    Text("Now playing: whatever \(live.appName) is playing")
+                }
+                Text("Listeners: \(station.listenerCount)")
+                if let broadcaster = station as? Broadcaster {
+                    Button("Skip track") { broadcaster.skip() }
+                }
             }
             Divider()
             Button("Copy stream URL") { model.copyStreamURL() }

@@ -11,3 +11,7 @@ build/
 /spike/*.log
 /spike/*.aac
 /spike/headers.txt
+/spike/tap
+/spike/*.wav
+/spike/Tap.app
+/spike/tap.log

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>uk.ohnotnow.streamer.tapspike</string>
+	<key>CFBundleName</key>
+	<string>Tap Spike</string>
+	<key>CFBundleExecutable</key>
+	<string>tap</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>The tap spike records another app's audio to test rebroadcasting it.</string>
+</dict>
+</plist>

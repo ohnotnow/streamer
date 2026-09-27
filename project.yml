@@ -34,6 +34,9 @@ targets:
         # Without it tccd refuses kTCCServiceMediaLibrary silently, with no prompt, and iTunesLibrary
         # fails with NSCocoaError 4097 on com.apple.amp.library.framework (found 2026-09-26).
         NSAppleMusicUsageDescription: "Streamer reads your Music playlists so it can play one as a stream. It never changes your library."
+        # The same silent refusal for kTCCServiceAudioCapture: the process tap runs but hears only
+        # zeros, and still mutes the tapped app (found 2026-09-27).
+        NSAudioCaptureUsageDescription: "Streamer passes on a browser's audio as a stream while someone is listening, and quietens the browser here meanwhile."
   StreamerTests:
     type: bundle.unit-test
     platform: macOS

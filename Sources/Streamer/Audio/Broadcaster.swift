@@ -1,21 +1,11 @@
 import AVFoundation
 import Observation
 
-/// Somebody tuned in. The server wraps each connection in one of these.
-@MainActor
-protocol Listener: AnyObject {
-    func send(_ frame: Data)
-    /// Frames handed to `send` that have not yet gone out on the wire.
-    var pendingFrames: Int { get }
-    /// Hang up on this listener.
-    func close()
-}
-
 /// Walks a source's tracks in order, looping, and sends the same ADTS frames to every listener at
 /// real-time pace. Encodes only while someone is listening; the last one leaving pauses it where it
 /// is, and the next listener picks up from there.
 @MainActor @Observable
-final class Broadcaster {
+final class Broadcaster: Station {
     struct Track: Equatable {
         let url: URL
         let artist: String?
@@ -25,8 +15,6 @@ final class Broadcaster {
     static let framesPerSecond = TrackDecoder.pcmFormat.sampleRate / 1024
     /// Sent ahead of real time so a new listener's player fills its buffer quickly.
     static let leadSeconds = 2.0
-    /// A listener further behind than this is dropped rather than queued for without limit.
-    static let slowListenerFrames = Int(10 * framesPerSecond)
 
     private(set) var nowPlaying: Track?
     private(set) var listenerCount = 0 {
@@ -40,7 +28,7 @@ final class Broadcaster {
     @ObservationIgnored private let source: any Source
     @ObservationIgnored private let now: () -> TimeInterval
     @ObservationIgnored private let ticksAutomatically: Bool
-    @ObservationIgnored private var listeners: [ObjectIdentifier: any Listener] = [:]
+    @ObservationIgnored private var audience = Audience()
     @ObservationIgnored private var tracks: [URL] = []
     @ObservationIgnored private var trackIndex = -1
     @ObservationIgnored private var decoder: TrackDecoder?
@@ -60,15 +48,14 @@ final class Broadcaster {
 
     func add(_ listener: any Listener) {
         guard failure == nil else { return listener.close() }
-        listeners[ObjectIdentifier(listener)] = listener
-        listenerCount = listeners.count
-        if listeners.count == 1 { resume() }
+        audience.add(listener)
+        listenerCount = audience.count
+        if audience.count == 1 { resume() }
     }
 
     func remove(_ listener: any Listener) {
-        guard listeners.removeValue(forKey: ObjectIdentifier(listener)) != nil else { return }
-        listenerCount = listeners.count
-        if listeners.isEmpty { pause() }
+        guard audience.remove(listener) else { return }
+        audienceChanged()
     }
 
     /// Moves on to the next track. Listeners hear the change once the frames already sent have played.
@@ -80,30 +67,28 @@ final class Broadcaster {
 
     /// Hang up on everyone and stop for good.
     func stop() {
-        for listener in listeners.values { listener.close() }
-        listeners.removeAll()
-        listenerCount = 0
-        pause()
+        audience.closeAll()
+        audienceChanged()
     }
 
     /// Sends whatever is due. The loop calls this every 20 ms while anyone is listening.
     func tick() async {
-        guard !ticking, !listeners.isEmpty else { return }
+        guard !ticking, !audience.isEmpty else { return }
         ticking = true
         defer { ticking = false }
         let due = Int((now() - startedAt + Self.leadSeconds) * Self.framesPerSecond)
-        while framesSent < due, !listeners.isEmpty {
+        while framesSent < due, !audience.isEmpty {
             guard let frame = await nextFrame() else { return }
-            for listener in Array(listeners.values) {
-                listener.send(frame)
-                if listener.pendingFrames > Self.slowListenerFrames {
-                    Log.log("dropping a listener more than 10 s behind")
-                    listener.close()
-                    remove(listener)
-                }
-            }
+            audience.send(frame)
+            audienceChanged()
             framesSent += 1
         }
+    }
+
+    /// Pauses once the last listener has gone.
+    private func audienceChanged() {
+        listenerCount = audience.count
+        if audience.isEmpty { pause() }
     }
 
     private func resume() {

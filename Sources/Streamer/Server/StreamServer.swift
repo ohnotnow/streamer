@@ -15,7 +15,7 @@ enum StreamServerError: Error, CustomStringConvertible {
 
 /// Serves the broadcaster's frames at `GET /stream`, and 404 for anything else. Loopback only unless
 /// `allInterfaces`, which also reaches the tailnet; there is no authentication either way.
-/// Everything runs on the main queue, where the Broadcaster lives.
+/// Everything runs on the main queue, where the station lives.
 @MainActor
 final class StreamServer {
     static let defaultPort: UInt16 = 8090
@@ -24,13 +24,13 @@ final class StreamServer {
 
     private let requestedPort: UInt16
     private let allInterfaces: Bool
-    private let broadcaster: Broadcaster
+    private let broadcaster: any Station
     private var listener: NWListener?
 
     /// The port actually bound, once `start()` has returned. Useful when asking for port 0.
     private(set) var boundPort: UInt16?
 
-    init(port: UInt16 = StreamServer.defaultPort, allInterfaces: Bool = false, broadcaster: Broadcaster) {
+    init(port: UInt16 = StreamServer.defaultPort, allInterfaces: Bool = false, broadcaster: any Station) {
         requestedPort = port
         self.allInterfaces = allInterfaces
         self.broadcaster = broadcaster
@@ -150,7 +150,7 @@ final class StreamServer {
     }
 }
 
-/// One tuned-in connection. Counts frames sent but not yet on the wire, so the Broadcaster can drop
+/// One tuned-in connection. Counts frames sent but not yet on the wire, so the station can drop
 /// a listener that has fallen too far behind.
 @MainActor
 final class ConnectionListener: Listener {

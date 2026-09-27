@@ -24,6 +24,8 @@
 	<true/>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Streamer reads your Music playlists so it can play one as a stream. It never changes your library.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Streamer passes on a browser's audio as a stream while someone is listening, and quietens the browser here meanwhile.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string></string>
 </dict>
